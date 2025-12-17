@@ -3,7 +3,6 @@ package com.mini.server;
 import com.mini.server.handler.StringHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -11,11 +10,15 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * @author liucaiwen
  * 2025/11/26
  */
+@Slf4j
+@Data
 public class RedisMiniServer implements RedisServer {
 
     private String host;
@@ -30,8 +33,8 @@ public class RedisMiniServer implements RedisServer {
     public RedisMiniServer(String host, int port) {
         this.host = host;
         this.port = port;
-        this.bossGroup = new NioEventLoopGroup();
-        this.workerGroup = new NioEventLoopGroup();
+        this.bossGroup = new NioEventLoopGroup(1);
+        this.workerGroup = new NioEventLoopGroup(4);
     }
 
     @Override
@@ -50,7 +53,7 @@ public class RedisMiniServer implements RedisServer {
         // 绑定host 和 端口
         try {
             serverChannel = bootstrap.bind(host, port).sync().channel();
-            System.out.println("RedisMiniServer started on port " + port);
+            log.info("RedisMiniServer started on port {}", port);
         } catch (InterruptedException e) {
             stop();
             Thread.currentThread().interrupt();
@@ -61,46 +64,23 @@ public class RedisMiniServer implements RedisServer {
 
     @Override
     public void stop() {
-        if (bossGroup != null) {
-            bossGroup.shutdownGracefully();
+        try {
+            // 关闭顺序和申请顺序是相反的
+            if (serverChannel != null) {
+                serverChannel.close();
+            }
+            if (workerGroup != null) {
+                workerGroup.shutdownGracefully().sync();
+            }
+            if (bossGroup != null) {
+                bossGroup.shutdownGracefully().sync();
+            }
+        } catch (Exception e) {
+            log.error("RedisMiniServer stop error", e);
         }
-        if (workerGroup != null) {
-            workerGroup.shutdownGracefully();
-        }
-        if (serverChannel != null) {
-            serverChannel.close();
-        }
+
+
     }
 
-    public String getHost() {
-        return host;
-    }
 
-    public void setHost(String host) {
-        this.host = host;
-    }
-
-    public int getPort() {
-        return port;
-    }
-
-    public void setPort(int port) {
-        this.port = port;
-    }
-
-    public EventLoopGroup getBossGroup() {
-        return bossGroup;
-    }
-
-    public void setBossGroup(EventLoopGroup bossGroup) {
-        this.bossGroup = bossGroup;
-    }
-
-    public EventLoopGroup getWorkerGroup() {
-        return workerGroup;
-    }
-
-    public void setWorkerGroup(EventLoopGroup workerGroup) {
-        this.workerGroup = workerGroup;
-    }
 }
