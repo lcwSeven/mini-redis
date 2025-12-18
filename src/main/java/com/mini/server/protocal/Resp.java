@@ -2,6 +2,7 @@ package com.mini.server.protocal;
 
 import io.netty.buffer.ByteBuf;
 
+
 /**
  * @author liucaiwen
  * 2025/12/3
@@ -22,11 +23,17 @@ public abstract class Resp {
 
         switch (b) {
             case '+':
-                return new SimpleString(buf);
+                return new SimpleString(getString(buf));
             case '-':
-                return null;
+                return new Errors();
         }
         return null;
+    }
+
+    private static String getString(ByteBuf buf) {
+        byte[] bytes = new byte[buf.readableBytes()];
+        buf.readBytes(bytes);
+        return new String(bytes);
     }
 
     public abstract void encode(Resp resp, ByteBuf buf);

@@ -12,9 +12,9 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class SimpleString extends Resp{
 
-    private ByteBuf buf;
+    private String buf;
 
-    public SimpleString(ByteBuf buf) {
+    public SimpleString(String str) {
         this.buf = buf;
     }
 
